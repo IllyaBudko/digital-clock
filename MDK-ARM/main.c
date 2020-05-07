@@ -57,21 +57,27 @@ int main()
   }
   pdata++;
   
-  HAL_Delay(10);
-  
+  HAL_Delay(25);
+  /*
   if(HAL_I2C_IsDeviceReady(&i2c_handle,0xE0,3,100) != HAL_OK)
   {
     while(1);
   }
-  
-  HAL_Delay(10);
+  */
   
   if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata++,1) != HAL_OK)
   {
     while(1);
   }
   
-  HAL_Delay(10);
+  HAL_Delay(25);
+  
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata++,1) != HAL_OK)
+  {
+    while(1);
+  }
+  
+  HAL_Delay(25);
   
   while(1);
 }
