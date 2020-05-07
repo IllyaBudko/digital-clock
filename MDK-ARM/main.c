@@ -22,8 +22,8 @@ void I2C_ReInit(void);
 
 
 uint8_t Display_Addr = (0x70 >> 1);   // Display address
-uint8_t transmit_buffer[] = {0x04,0,0x02,0,0x06,0,0x08,0};
-uint8_t init_tx_buffer[] = {0x21,0x81,0xEF};
+uint8_t transmit_buffer[] = {0x04,0xFF,0x02,0xFF,0x06,0xFF,0x08,0xFF};
+uint8_t init_tx_buffer[] = {0x20,0x21,0x81,0xEF,0x20,0x04,0xFF,0x21};
 uint8_t *pdata = init_tx_buffer;
 
 //volatile uint8_t digit_bcd[] = {0,0,0,0};
@@ -49,7 +49,7 @@ int main()
   
   SystemClockConfig();
   
-  HAL_Delay(50);
+  HAL_Delay(65);
   
   if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
   {
@@ -58,31 +58,67 @@ int main()
   pdata++;
   
   HAL_Delay(25);
-  /*
-  if(HAL_I2C_IsDeviceReady(&i2c_handle,0xE0,3,100) != HAL_OK)
-  {
-    while(1);
-  }
-  */
   
-  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata++,1) != HAL_OK)
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
   {
     while(1);
   }
+  pdata++;
   
   HAL_Delay(25);
   
-  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata++,1) != HAL_OK)
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
   {
     while(1);
   }
+  pdata++;
   
   HAL_Delay(25);
   
-  while(1);
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
+  {
+    while(1);
+  }
+  pdata++;
+  
+  HAL_Delay(25);
+  
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
+  {
+    while(1);
+  }
+  pdata++;
+  
+  HAL_Delay(25);
+  
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
+  {
+    while(1);
+  }
+  pdata++;
+  
+  HAL_Delay(25);
+  
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
+  {
+    while(1);
+  }
+  pdata++;
+  
+  HAL_Delay(25);
+  
+  if(HAL_I2C_Master_Transmit_IT(&i2c_handle,0xE0,pdata,1) != HAL_OK)
+  {
+    while(1);
+  }
+  pdata++;
+  
+  HAL_Delay(25);
+
 }
 
-void SystemClockConfig(void){
+void SystemClockConfig(void)
+{
   
 	RCC_OscInitTypeDef	osc_init;
 	RCC_ClkInitTypeDef	clk_init;
