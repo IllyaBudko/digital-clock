@@ -22,6 +22,7 @@ uint16_t i2c_addr(void);
 
 uint8_t Display_Addr = (0x70 >> 1);   // Display address
 uint8_t init_tx_buffer[] = {0x21,0x81,0xEF};
+uint8_t transmit_buffer[] = {0x00,0x00,0x02,0x00,0x04,0x00,0x06,0x00,0x08,0x00};
 uint8_t test_tx[] = {0x00,0x71,0x20,0x77,0x04,0x00,0x06,0x39,0x08,0x79};
 
 volatile uint8_t digit_bcd[] = {0,0,0,0};
@@ -48,10 +49,13 @@ const uint8_t numtable[] = {
 int main()
 { 
   HAL_Init();
-//  RTC_Init();
+  SystemClockConfig();
+  
+  RTC_Init();
   I2C_Init();
   
-  SystemClockConfig();
+  TimeDateConfig();
+  AlarmConfig();
 
   Display_Initialization();
 
@@ -59,6 +63,7 @@ int main()
     {
       while(1);
     }
+
   while(1);
 }
 
@@ -141,9 +146,6 @@ void RTC_Init(void)
   rtc_handle.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_LOW;
   rtc_handle.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
   
-  __HAL_RCC_PWR_CLK_ENABLE();
-  HAL_PWR_EnableBkUpAccess();
-  
   if(HAL_RTC_Init(&rtc_handle) != HAL_OK)
   {
     while(1);
@@ -153,10 +155,10 @@ void RTC_Init(void)
 void TimeDateConfig(void)
 {
   RTC_TimeTypeDef   timeinit;
-  
+
   timeinit.TimeFormat = RTC_HOURFORMAT12_PM;
-  timeinit.Hours = 9;
-  timeinit.Minutes = 0;
+  timeinit.Hours = 0x10;
+  timeinit.Minutes = 0x34;
   timeinit.Seconds = 0;
   
   if(HAL_RTC_SetTime(&rtc_handle,&timeinit,RTC_FORMAT_BCD) != HAL_OK)
@@ -174,7 +176,7 @@ void AlarmConfig(void)
   alarminit.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_NONE;
   alarminit.AlarmTime.SubSeconds = 0;
   
-  if(HAL_RTC_SetAlarm(&rtc_handle,&alarminit,RTC_FORMAT_BCD) != HAL_OK)
+  if(HAL_RTC_SetAlarm_IT(&rtc_handle,&alarminit,RTC_FORMAT_BCD) != HAL_OK)
   {
     while(1);
   }
@@ -184,9 +186,7 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 {
   RTC_TimeTypeDef   time_read;
   RTC_DateTypeDef   date_read;
-  
-  uint8_t transmit_buffer[] = {0x00,0x00,0x02,0x00,0x04,0x00,0x06,0x00,0x08,0x00};
-  
+
   if(HAL_RTC_GetTime(&rtc_handle,&time_read,RTC_FORMAT_BCD) != HAL_OK)
   {
     while(1);
@@ -196,32 +196,33 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
   {
     while(1);
   }
-  //digit_bcd[0] = ((time_read.Hours & 0xF0) >> 4);   //Hours high digit
-  //digit_bcd[1] = time_read.Hours & 0xF;             //Hours low digit
-  //digit_bcd[2] = ((time_read.Minutes & 0xF0) >> 4); //Minutes high digit
-  //digit_bcd[3] = time_read.Minutes & 0xF;           //Minutes low digit
+  digit_bcd[0] = time_read.Hours >> 4;              //Hours high digit
+  digit_bcd[1] = time_read.Hours & 0xF;             //Hours low digit
+  digit_bcd[2] = time_read.Minutes >> 4;            //Minutes high digit
+  digit_bcd[3] = time_read.Minutes  & 0xF;           //Minutes low digit
   
-  transmit_buffer[1] = numtable[((time_read.Hours & 0xF0) >> 4)];
-  transmit_buffer[3] = numtable[time_read.Hours & 0xF];
-  transmit_buffer[5] = numtable[((time_read.Minutes & 0xF0) >> 4)];
-  transmit_buffer[7] = numtable[time_read.Minutes & 0xF];
+  if(transmit_buffer[5] == 0)
+  {
+    transmit_buffer[5] = 0x02;
+  }
+  else
+  {
+    transmit_buffer[5] = 0x00;
+  }
   
-  HAL_Delay(5);
-  HAL_I2C_Master_Transmit_IT(&i2c_handle,4,transmit_buffer,sizeof(transmit_buffer));
-  HAL_Delay(5);
+  transmit_buffer[1] = numtable[digit_bcd[0]];
+  transmit_buffer[3] = numtable[digit_bcd[1]];
+  transmit_buffer[7] = numtable[digit_bcd[2]];
+  transmit_buffer[9] = numtable[digit_bcd[3]];
+  
+  HAL_I2C_Master_Transmit_IT(&i2c_handle,i2c_addr(),transmit_buffer,sizeof(transmit_buffer));
 }
-
-
-
-
-
-
-
 
 //Display APIs
 void Display_Initialization(void)
 {
 
+  HAL_Delay(5);
   if(HAL_I2C_Master_Transmit_IT(&i2c_handle,i2c_addr(),&init_tx_buffer[0],1) != HAL_OK)
     {
       while(1);
@@ -257,15 +258,17 @@ void Time_Decode(void)
   {
     while(1);
   }
-  //digit_bcd[0] = ((time_read.Hours & 0xF0) >> 4);   //Hours high digit
-  //digit_bcd[1] = time_read.Hours & 0xF;             //Hours low digit
-  //digit_bcd[2] = ((time_read.Minutes & 0xF0) >> 4); //Minutes high digit
-  //digit_bcd[3] = time_read.Minutes & 0xF;           //Minutes low digit
   
-  transmit_buffer[1] = numtable[((time_read.Hours & 0xF0) >> 4)];
-  transmit_buffer[3] = numtable[time_read.Hours & 0xF];
-  transmit_buffer[5] = numtable[((time_read.Minutes & 0xF0) >> 4)];
-  transmit_buffer[7] = numtable[time_read.Minutes & 0xF];
+  digit_bcd[0] = ((time_read.Hours & 0xF0) >> 4);   //Hours high digit
+  digit_bcd[1] = time_read.Hours & 0xF;             //Hours low digit
+  digit_bcd[2] = ((time_read.Minutes & 0xF0) >> 4); //Minutes high digit
+  digit_bcd[3] = time_read.Minutes & 0xF;           //Minutes low digit
+  
+  
+  transmit_buffer[1] = numtable[digit_bcd[0]];
+  transmit_buffer[3] = numtable[digit_bcd[1]];
+  transmit_buffer[7] = numtable[digit_bcd[2]];
+  transmit_buffer[9] = numtable[digit_bcd[3]];
   
   HAL_Delay(5);
   HAL_I2C_Master_Transmit_IT(&i2c_handle,4,transmit_buffer,sizeof(transmit_buffer));
