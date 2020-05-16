@@ -158,7 +158,7 @@ void TimeDateConfig(void)
 
   timeinit.TimeFormat = RTC_HOURFORMAT12_PM;
   timeinit.Hours = 0x11;
-  timeinit.Minutes = 0x02;
+  timeinit.Minutes = 0x11;
   timeinit.Seconds = 0;
   
   if(HAL_RTC_SetTime(&rtc_handle,&timeinit,RTC_FORMAT_BCD) != HAL_OK)
